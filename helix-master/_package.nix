@@ -11,6 +11,7 @@
   writeShellScript,
   python3,
   nix-update,
+  nurl,
 }:
 let
   helixSource = fetchFromGitHub {
@@ -86,6 +87,7 @@ rustPlatform.buildRustPackage (self: {
     inherit helixSource;
     updateScript = writeShellScript "update-script.sh" ''
       set -euo pipefail
+      export PATH="${lib.makeBinPath [ nurl ]}:$PATH"
 
       echo "Updating helix-master source..."
       ${lib.getExe nix-update} --flake helix-master --version=branch
@@ -97,6 +99,11 @@ rustPlatform.buildRustPackage (self: {
       ${lib.getExe python3} ${./generate_grammars.py} \
         "$HELIX_SRC/languages.toml" \
         -o packages/helix-master/grammars.json \
+
+      if [ $? -ne 0 ]; then
+        echo "Error: Failed to generate grammars.json" >&2
+        exit 1
+      fi
 
       echo "Done! Updated grammars.json"
     '';
